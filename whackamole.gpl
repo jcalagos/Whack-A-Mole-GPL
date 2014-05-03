@@ -1,0 +1,154 @@
+// Window Settings
+int window_width = 800;
+int window_height = 600;
+double window_red = 0.2;
+double window_blue = 0;
+double window_green = 0.4;
+int animation_speed = 100;
+
+// Object Instantiation
+int hammer_x = 300;				// Initial x position of hammer
+int hammer_y = 400;				// Initial y position of hammer
+int x_inc = 275; 				// x increment for hammer movement
+int num_of_dirt = 3;			// Number of dirt mounds/moles
+int dirt_x = 5;					// Initial dirt mound x position
+int dirt_y = window_height/4;	// Initial dirt mound y position
+int dirt_gap = 275;				// Distance between dirt mounds
+int mole_y = dirt_y - 35;		// Initial mole position
+int score_value = 0;			// Score value (increases with hits)
+int mole_num = 1;				// Used to keep track of each mole
+int mole_lag = 1000000;			// Slows down mole animation
+int grass_density = 5;			// Arbitrary grass density
+int rando;						// Used to randomly move moles
+int i;							// Used to initialize arrays
+
+// Forward declare mole's hiding animation
+forward animation mole_hide(pixmap cur_mole);
+
+// Creates a text box to keep score
+textbox score(x = 0, y = window_height - 14, red = 1,
+					green = 1, blue = 1, 
+					text = "Score: " + score_value, size = 0.12);
+
+// Create hammer pixmap object
+pixmap hammer(x = hammer_x, y = hammer_y,
+				filename = "hammer.bmp");
+
+// Create hammer_down pixmap object
+pixmap hammer_d(x = hammer_x, y = hammer_y - 150,
+				filename = "hammer_down.bmp", visible = 0);
+
+// Create array of dirt mounds
+pixmap dirt_array[num_of_dirt];
+
+// Create array of moles
+pixmap mole_array[num_of_dirt];
+
+// Create array of dead moles
+pixmap mole_dead[num_of_dirt];
+
+// Create array of grass
+pixmap grass_array[grass_density];
+
+// Initializes pixmap arrays
+initialization
+{
+	for (i = 0; i < num_of_dirt; i += 1)
+	{
+		// Initialize dirt mounds
+		dirt_array[i].filename = "dirt.bmp";
+		dirt_array[i].x = dirt_x;
+		dirt_array[i].y = dirt_y;
+
+		// Initialize moles (initially hidden)
+		mole_array[i].filename = "mole.bmp";
+		mole_array[i].x = dirt_x;
+		mole_array[i].y = mole_y;
+		mole_array[i].visible = 0;
+		mole_array[i].animation_block = mole_hide;				
+		
+		// Initialize dead moles (hidden until a mole is killed)
+		mole_dead[i].filename = "mole_dead.bmp";
+		mole_dead[i].x = dirt_x;
+		mole_dead[i].y = mole_y - 75;
+		mole_dead[i].visible = 0;		
+
+		// Separates dirt mounds/moles/dead moles
+		dirt_x += dirt_gap;
+	}
+	// Randomly places grass around map
+	for (i = 0; i < grass_density; i += 1)
+	{
+		grass_array[i].filename = "grass.bmp";
+		grass_array[i].x = random(window_width);
+		grass_array[i].y = random(window_height);
+	}
+}
+
+
+// This animation block randomly hides and displays moles
+// The mole_lag is increased to slow down animation but
+// still allows the animation_speed to be smooth.
+animation mole_hide(pixmap cur_mole)
+{
+	rando = random(mole_lag);
+
+	if (rando < num_of_dirt)
+	{
+		if (mole_array[rando].visible == 0)
+		{
+			if (mole_dead[rando].visible == 1)
+				mole_dead[rando].visible = 0;
+
+			mole_array[rando].visible = 1;
+		}	
+		else 
+			mole_array[rando].visible = 0;
+	}
+}
+
+// Pressing left arrow will move hammer to next mole on left
+on leftarrow
+{
+	if (hammer.x > x_inc)
+	{
+		hammer.x -= x_inc; 
+		hammer_d.x -= x_inc;
+		mole_num -= 1;
+	}
+}
+
+// Pressing right arrow will move hammer to next mole on right
+on rightarrow
+{
+	if (hammer.x < window_width - x_inc)
+	{
+		hammer.x += x_inc;
+		hammer_d.x += x_inc;
+		mole_num += 1;
+	}
+}
+
+// Pressing space will swing hammer up and down 
+on space
+{
+	if (hammer.visible == 1)
+	{
+		hammer.visible = 0;
+		hammer_d.visible = 1;
+	}
+	else
+	{
+		hammer.visible = 1;
+		hammer_d.visible = 0;
+	}	
+	
+	// If a mole gets hit, display dead mole and increase score
+	if (mole_array[mole_num].visible == 1 && hammer_d.visible == 1)
+	{
+		mole_array[mole_num].visible = 0;
+		mole_dead[mole_num].visible = 1;
+		score_value += 10;
+		score.text = "Score: " + score_value;
+	}
+}
